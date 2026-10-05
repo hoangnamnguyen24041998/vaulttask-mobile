@@ -1,0 +1,18 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build the retail release APK"
+  lane :retail do
+    gradle(task: "assembleRetailRelease")
+  end
+
+  desc "Build the enterprise release APK"
+  lane :enterprise do
+    gradle(task: "assembleEnterpriseRelease")
+  end
+
+  desc "Build both Android brand variants"
+  lane :all_brands do
+    gradle(task: "assembleRetailRelease assembleEnterpriseRelease")
+  end
+end

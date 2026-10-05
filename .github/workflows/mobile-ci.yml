@@ -1,0 +1,68 @@
+name: Mobile CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Typecheck, lint, and Android flavors
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx expo prebuild --platform android --no-install
+      - name: Assemble retail and enterprise
+        run: |
+          cd android
+          ./gradlew assembleRetailRelease assembleEnterpriseRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apks
+          path: android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+  firebase-distribution:
+    name: Distribute Android builds to Firebase testers
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-release-apks
+          path: dist-apks
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      - name: Distribute retail and enterprise apps
+        env:
+          RETAIL_APP_ID: ${{ secrets.FIREBASE_APP_ID_RETAIL }}
+          ENTERPRISE_APP_ID: ${{ secrets.FIREBASE_APP_ID_ENTERPRISE }}
+          TESTER_GROUPS: ${{ vars.FIREBASE_DISTRIBUTION_GROUPS }}
+        run: |
+          retail_apk="$(find dist-apks -path '*/retail/release/*.apk' -print -quit)"
+          enterprise_apk="$(find dist-apks -path '*/enterprise/release/*.apk' -print -quit)"
+          test -n "$retail_apk" && test -n "$enterprise_apk"
+          if [ -n "$TESTER_GROUPS" ]; then
+            npx --yes firebase-tools appdistribution:distribute "$retail_apk" --app "$RETAIL_APP_ID" --groups "$TESTER_GROUPS" --release-notes "VaultTask retail build $GITHUB_SHA"
+            npx --yes firebase-tools appdistribution:distribute "$enterprise_apk" --app "$ENTERPRISE_APP_ID" --groups "$TESTER_GROUPS" --release-notes "VaultTask enterprise build $GITHUB_SHA"
+          else
+            npx --yes firebase-tools appdistribution:distribute "$retail_apk" --app "$RETAIL_APP_ID" --release-notes "VaultTask retail build $GITHUB_SHA"
+            npx --yes firebase-tools appdistribution:distribute "$enterprise_apk" --app "$ENTERPRISE_APP_ID" --release-notes "VaultTask enterprise build $GITHUB_SHA"
+          fi

@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["NativeSecureVaultModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.securevault.NativeSecureVaultModule"]
+  }
+}

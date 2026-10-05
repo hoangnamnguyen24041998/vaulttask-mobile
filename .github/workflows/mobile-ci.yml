@@ -30,7 +30,7 @@ jobs:
       - name: Assemble retail and enterprise
         run: |
           cd android
-          ./gradlew assembleRetailRelease assembleEnterpriseRelease --no-daemon
+          ./gradlew assembleRetailRelease assembleEnterpriseRelease --no-daemon --max-workers=1
       - uses: actions/upload-artifact@v4
         with:
           name: android-release-apks

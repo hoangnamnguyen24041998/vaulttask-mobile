@@ -31,7 +31,7 @@ The local guest identity supports offline-only work. It is device-local and is n
 
 ## Android flavors and release automation
 
-Prebuild creates the Gradle variants `retailDebug`, `retailRelease`, `enterpriseDebug`, and `enterpriseRelease`. Fastlane lanes are available via `bundle exec fastlane android retail`, `enterprise`, and `all_brands`. Configure CI-managed signing before publishing release artifacts; the scaffold intentionally contains no keystore or signing credentials.
+Prebuild creates the Gradle variants `retailDebug`, `retailRelease`, `enterpriseDebug`, and `enterpriseRelease`. Fastlane lanes are available via `bundle exec fastlane android retail`, `enterprise`, and `all_brands`. Build both release variants with `./gradlew assembleRetailRelease assembleEnterpriseRelease --max-workers=1` to avoid D8 heap pressure when flavor dexing runs concurrently. Configure CI-managed signing before publishing release artifacts; the scaffold intentionally contains no keystore or signing credentials.
 
 GitHub Actions runs typechecking, lint, native prebuild, and both Android release variant assemblies. A manual `workflow_dispatch` also uploads both variants to Firebase App Distribution when the repository has `FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_APP_ID_RETAIL`, and `FIREBASE_APP_ID_ENTERPRISE` secrets configured. Optionally set the `FIREBASE_DISTRIBUTION_GROUPS` repository variable. The service account needs Firebase App Distribution administrator permissions. Add Firebase configuration and signing secrets to the deployment environment only; never commit them.
 
